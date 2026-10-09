@@ -1,0 +1,13 @@
+{
+  "name": "list_failed_jobs",
+  "description": "List failed jobs from a fixture workflow JSON file",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" }
+    },
+    "required": ["path"]
+  },
+  "kind": "builtin",
+  "id": "list_failed_jobs"
+}

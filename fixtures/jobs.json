@@ -1,0 +1,7 @@
+{
+  "jobs": [
+    { "name": "fmt", "conclusion": "success" },
+    { "name": "test", "conclusion": "failure" },
+    { "name": "clippy", "conclusion": "success" }
+  ]
+}

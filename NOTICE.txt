@@ -1,0 +1,10 @@
+agentkit
+
+Copyright (c) 2026 Moonbase 2090 LLC
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+The full license is in LICENSE at the repository root. Third-party
+dependencies retain their existing licenses and copyright notices.

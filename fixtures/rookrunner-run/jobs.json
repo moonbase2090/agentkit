@@ -1,0 +1,8 @@
+{
+  "workflow_run_id": "fixture-run-001",
+  "jobs": [
+    { "name": "fmt", "conclusion": "success", "log_file": "logs/fmt.log" },
+    { "name": "test", "conclusion": "failure", "log_file": "logs/test.log" },
+    { "name": "clippy", "conclusion": "success", "log_file": "logs/clippy.log" }
+  ]
+}

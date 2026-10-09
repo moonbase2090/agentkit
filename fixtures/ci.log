@@ -1,0 +1,5 @@
+running 38 tests
+test grid::fill_wide_char_in_one_column_area_becomes_blank ... FAILED
+failures:
+---- grid::fill_wide_char_in_one_column_area_becomes_blank stdout ----
+assertion failed: expected blank cell at edge

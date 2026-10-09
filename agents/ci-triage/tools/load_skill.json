@@ -1,0 +1,13 @@
+{
+  "name": "load_skill",
+  "description": "Load the full body of a skill by id from the agent skills catalog",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "skill_id": { "type": "string" }
+    },
+    "required": ["skill_id"]
+  },
+  "kind": "builtin",
+  "id": "load_skill"
+}

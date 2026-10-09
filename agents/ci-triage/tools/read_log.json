@@ -1,0 +1,13 @@
+{
+  "name": "read_log",
+  "description": "Read a CI log file from disk",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" }
+    },
+    "required": ["path"]
+  },
+  "kind": "builtin",
+  "id": "read_log"
+}

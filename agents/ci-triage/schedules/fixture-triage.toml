@@ -1,0 +1,3 @@
+id = "fixture-triage"
+cron = "0 0 9 * * *"
+prompt = "Triage the fixture CI failure."

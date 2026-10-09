@@ -1,0 +1,14 @@
+{
+  "name": "rookrunner_read_job_log",
+  "description": "Read a job log from a local Rookrunner workflow run directory",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": { "type": "string" },
+      "job_name": { "type": "string" }
+    },
+    "required": ["run_dir", "job_name"]
+  },
+  "kind": "builtin",
+  "id": "rookrunner_read_job_log"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "rookrunner_list_failed",
+  "description": "List failed jobs from a local Rookrunner workflow run directory (jobs.json + logs/)",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": { "type": "string" }
+    },
+    "required": ["run_dir"]
+  },
+  "kind": "builtin",
+  "id": "rookrunner_list_failed"
+}
