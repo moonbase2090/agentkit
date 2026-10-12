@@ -48,7 +48,7 @@ cargo run -q -p demo --bin run-due -- --now 2026-10-08T10:00:00Z
 
 ## License
 
-MPL-2.0. See [LICENSE](LICENSE) and [NOTICE.txt](NOTICE.txt). To report a vulnerability, see [SECURITY.md](SECURITY.md).
+MIT. See [LICENSE](LICENSE) and [NOTICE.txt](NOTICE.txt). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Development
 
