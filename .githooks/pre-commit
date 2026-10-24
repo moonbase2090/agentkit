@@ -1,12 +1,18 @@
 #!/bin/sh
 # Pre-commit hook: block commits that contain unformatted staged files.
 # Only runs a formatter when matching files are staged.
+# With --all, checks the whole tree instead (used by CI, where nothing is staged).
 #
 # Set up once per clone:  git config core.hooksPath .githooks
 # Bypass (rarely):        git commit --no-verify
 # POSIX sh only.
 
 set -u
+
+check_all=0
+if [ "${1:-}" = "--all" ]; then
+    check_all=1
+fi
 
 # Cargo manifests to check when .rs files are staged (empty = no Rust).
 RUST_MANIFESTS="Cargo.toml"
@@ -22,7 +28,7 @@ staged_match() {
 
 failed=0
 
-if [ -n "$RUST_MANIFESTS" ] && staged_match '*.rs'; then
+if [ -n "$RUST_MANIFESTS" ] && { [ "$check_all" -eq 1 ] || staged_match '*.rs'; }; then
     if ! command -v cargo >/dev/null 2>&1; then
         echo "pre-commit: cargo not found; install Rust with rustfmt to commit .rs files" >&2
         exit 1
