@@ -48,7 +48,8 @@ export CHECK_ROOT="$root"
 export CHECK_TAG_MESSAGE="$tag_message"
 export CHECK_RELEASE_TITLE="$release_title"
 export CHECK_RELEASE_BODY="$release_body"
-export CHECK_ARTIFACTS="${artifacts[*]:-}"
+CHECK_ARTIFACTS="$(printf '%s\n' "${artifacts[@]+"${artifacts[@]}"}")"
+export CHECK_ARTIFACTS
 
 python3 <<'PY'
 from __future__ import annotations
@@ -192,7 +193,7 @@ def main() -> int:
     if release_body:
         scan_text("release-body", release_body, patterns, hits)
 
-    artifact_paths = os.environ.get("CHECK_ARTIFACTS", "").split()
+    artifact_paths = os.environ.get("CHECK_ARTIFACTS", "").split("\n")
     for raw in artifact_paths:
         if not raw:
             continue
