@@ -155,7 +155,10 @@ fn run_command_tool(
     ctx: &ToolContext,
 ) -> Result<String> {
     let mut command = Command::new(program);
-    command.stdin(Stdio::piped()).stdout(Stdio::piped());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     if let Some(env_name) = env_secret {
         let value = ctx
             .secrets
@@ -166,31 +169,55 @@ fn run_command_tool(
         command.env(env_name, value);
     }
     let mut child = command.spawn().context("spawn command tool")?;
-    if let Some(mut stdin) = child.stdin.take() {
-        let payload = serde_json::to_vec(arguments)?;
-        stdin.write_all(&payload)?;
-    }
+    let payload = serde_json::to_vec(arguments)?;
+    let stdin_writer = child.stdin.take().map(|mut stdin| {
+        std::thread::spawn(move || {
+            // The child may exit without reading stdin; a broken pipe is not an error here.
+            let _ = stdin.write_all(&payload);
+        })
+    });
+    let stdout_reader = child.stdout.take().map(|mut stdout| {
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut stdout, &mut buf);
+            buf
+        })
+    });
+    let stderr_reader = child.stderr.take().map(|mut stderr| {
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut stderr, &mut buf);
+            buf
+        })
+    });
     let deadline = Instant::now() + ctx.command_timeout;
-    while Instant::now() < deadline {
+    let status = loop {
         if let Some(status) = child.try_wait().context("poll command tool")? {
-            let output = child
-                .wait_with_output()
-                .context("read command tool output")?;
-            if !status.success() {
-                bail!(
-                    "command tool failed: {}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
-            }
-            return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+            break status;
+        }
+        if Instant::now() >= deadline {
+            child.kill().ok();
+            child.wait().ok();
+            bail!(
+                "command tool timed out after {}s",
+                ctx.command_timeout.as_secs()
+            );
         }
         std::thread::sleep(Duration::from_millis(25));
+    };
+    if let Some(handle) = stdin_writer {
+        handle.join().ok();
     }
-    child.kill().ok();
-    bail!(
-        "command tool timed out after {}s",
-        ctx.command_timeout.as_secs()
-    );
+    let stdout = stdout_reader
+        .map(|h| h.join().unwrap_or_default())
+        .unwrap_or_default();
+    let stderr = stderr_reader
+        .map(|h| h.join().unwrap_or_default())
+        .unwrap_or_default();
+    if !status.success() {
+        bail!("command tool failed: {}", String::from_utf8_lossy(&stderr));
+    }
+    Ok(String::from_utf8_lossy(&stdout).to_string())
 }
 
 pub fn builtin_read_log(args: &serde_json::Value, ctx: &ToolContext) -> Result<String> {
@@ -259,4 +286,55 @@ pub fn register_ci_builtins(registry: &mut ToolRegistry) {
     registry.register_builtin("rookrunner_list_failed", builtin_rookrunner_list_failed);
     registry.register_builtin("rookrunner_read_job_log", builtin_rookrunner_read_job_log);
     registry.register_builtin("load_skill", builtin_load_skill);
+}
+
+#[cfg(all(test, unix))]
+mod command_tool_tests {
+    use super::*;
+
+    fn ctx(timeout: Duration) -> ToolContext {
+        ToolContext {
+            secrets: HashMap::new(),
+            command_timeout: timeout,
+            skills: Vec::new(),
+            workspace_root: std::env::temp_dir(),
+            rookrunner_run_dir: None,
+        }
+    }
+
+    fn script(name: &str, body: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("agentkit-cmd-{}-{name}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("tool.sh");
+        fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        path
+    }
+
+    #[test]
+    fn large_stdout_does_not_time_out() {
+        let program = script("large", "head -c 1048576 /dev/zero | tr '\\\\0' a");
+        let out =
+            run_command_tool(&program, &None, &json!({}), &ctx(Duration::from_secs(10))).unwrap();
+        assert_eq!(out.len(), 1_048_576);
+    }
+
+    #[test]
+    fn failure_reports_stderr() {
+        let program = script("fail", "echo boom-from-stderr >&2; exit 3");
+        let err = run_command_tool(&program, &None, &json!({}), &ctx(Duration::from_secs(10)))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("boom-from-stderr"), "{err}");
+    }
+
+    #[test]
+    fn slow_command_times_out() {
+        let program = script("slow", "sleep 5");
+        let err = run_command_tool(&program, &None, &json!({}), &ctx(Duration::from_secs(1)))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("timed out"), "{err}");
+    }
 }
